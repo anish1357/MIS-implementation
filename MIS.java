@@ -6,7 +6,7 @@ import java.util.concurrent.CyclicBarrier;
 /**
  * Simulates a synchronous distributed system and implements MIS algorithm using multi threading
  */
-public class Luby {
+public class MIS {
 
     // Shared memory
     static Map<String, Integer> randomIdsMap = new HashMap<>();
@@ -165,7 +165,7 @@ public class Luby {
             ids[i] = sc.nextInt();
         }
 
-        Luby.ProcessNode[] processNodes = new Luby.ProcessNode[n];
+        MIS.ProcessNode[] processNodes = new MIS.ProcessNode[n];
 
         List<List<Integer>> processNeighbors = new ArrayList<>(); // Used for checking if MIS is indeed correct
         for(int i=0; i<n; i++) {
@@ -177,7 +177,7 @@ public class Luby {
             }
 
             // Create a new instance of a process node
-            processNodes[i] = new Luby.ProcessNode(ids[i], currentProcessNeighbors);
+            processNodes[i] = new MIS.ProcessNode(ids[i], currentProcessNeighbors);
             processNeighbors.add(currentProcessNeighbors);
         }
 

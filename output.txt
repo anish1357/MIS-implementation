@@ -1,4 +1,4 @@
-Number of rounds (phases): 1
-MIS has the processes with IDs: 17 10 
-Verifying the MIS constructed is correct...
-Verified that the MIS constructed is indeed correct!
+Number of rounds (phases): 3
+MIS has the processes with IDs: 2 3 5 7 
+Checking if  the MIS constructed is correct...
+The MIS constructed is correct!
