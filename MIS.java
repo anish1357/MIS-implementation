@@ -144,9 +144,6 @@ public class MIS {
 		return misSet;
 	}
 
-	/**
-	 * Computing closest MIS node
-	 */
 
 	private static void helper(Robot[] robots, Set<Integer> misNodes, List<List<Integer>> processNeighbors,
 			Set<Robot> usedRobots) {
@@ -158,6 +155,10 @@ public class MIS {
 		}
 	}
 
+
+	/**
+	 * Computes the closest robot to each MIS node.
+	 */
 	public static Robot closestRobotToMISNode(Robot[] robots, List<List<Integer>> processNeighbors, int misNode,
 			Set<Robot> usedRobots) {
 		int n = processNeighbors.size(); // number of nodes in the graph
@@ -187,7 +188,9 @@ public class MIS {
 		return closestRobot;
 	}
 
-	// perform BFS and return the shortest path between start and end
+	/**
+	 * perform BFS and return the shortest path between start and end
+	 */
 	public static List<Integer> shortestPath(List<List<Integer>> graph, int start, int end) {
 		Queue<Integer> queue = new LinkedList<>();
 		boolean[] visited = new boolean[graph.size()];
@@ -290,8 +293,8 @@ public class MIS {
 			ids[i] = sc.nextInt();
 
 			double rad = i * (2 * Math.PI / n);
-			int x = 250 + (int) (200 * Math.cos(rad));
-			int y = 250 + (int) (200 * Math.sin(rad));
+			int x = 900 + (int) (400 * Math.cos(rad));
+			int y = 450 + (int) (400 * Math.sin(rad));
 
 			Node node = new Node();
 			nodes.add(node);
@@ -375,39 +378,45 @@ public class MIS {
 			System.out.println();
 		}
 
-		int rounds = 0;
+		int hops = 0;
 		boolean blocked[] = new boolean[n];
-
-		int count = 0;
-
-		while (count != misNodes.size()) {
-			for (int i = 0; i < robots.length; i++) {
+		boolean robotReachedTarget[] = new boolean[robots.length];
+        HashMap <Integer,Boolean> misNodeFilled = new HashMap<>();
+		while (misNodeFilled.size() != misNodes.size()) {
+			    hops++;
 				Thread.sleep(2000);
-				if (robots[i].startNode == robots[i].targetNode){
-					nodes.get(robots[i].targetNode).setColor(Color.YELLOW);
-					draw.repaint();
-				   continue;
-			}
-				if (robots[i].path.indexOf(robots[i].currentNode) + 1 >= robots[i].path.size())
+			for (int i = 0; i < robots.length; i++) {
+
+				if(robotReachedTarget[robots[i].getId()] == true){
 					continue;
-				if (blocked[robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1)]
-						&& !misNodes.contains(robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1)))
-					continue;
-				if (robots[i].currentNode != robots[i].targetNode) {
-					blocked[robots[i].currentNode] = false;
-					if (!misNodes.contains(robots[i].currentNode) && !blocked[robots[i].currentNode])
-						nodes.get(robots[i].currentNode).setColor(Color.RED);
-					else
-						nodes.get(robots[i].currentNode).setColor(Color.BLUE);
-					draw.repaint();
-					robots[i].currentNode = robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1);
-					blocked[robots[i].currentNode] = true;
-					if (misNodes.contains(robots[i].currentNode))
-						count++;
-					nodes.get(robots[i].currentNode).setColor(Color.YELLOW);
+				}
+				if(robots[i].currentNode == robots[i].targetNode){
+					misNodeFilled.put(robots[i].targetNode,true);
+					nodes.get(robots[i].targetNode).setColor(Color.GREEN);
+					blocked[robots[i].targetNode]= true;
+					robotReachedTarget[robots[i].getId()] = true;
 					draw.repaint();
 				}
-				System.out.println(robots[i]);
+				else if(robots[i].currentNode!= robots[i].targetNode){
+					 int nextNode = robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1);
+					 if( blocked[nextNode] == true && !misNodes.contains(nextNode)){
+						 continue;
+					 }
+					 if(!misNodes.contains(robots[i].currentNode))
+						 nodes.get(robots[i].currentNode).setColor(Color.RED);
+					 else if(!misNodeFilled.containsKey(robots[i].currentNode))
+						 nodes.get(robots[i].currentNode).setColor(Color.BLUE);
+					if(!misNodeFilled.containsKey(robots[i].currentNode))
+						blocked[robots[i].currentNode] = false;
+				     blocked[nextNode] = true;
+					 robots[i].currentNode = nextNode;
+					 if(!misNodeFilled.containsKey(nextNode))
+					nodes.get(nextNode).setColor(Color.YELLOW);
+					draw.repaint();
+				}
+
+
+
 			}
 		}
 
@@ -431,6 +440,8 @@ public class MIS {
 			} else {
 				output.append("The MIS constructed is not correct!");
 			}
+			output.newLine();
+			output.append("The maximum no of hops is : " + hops);
 			output.close();
 
 		} catch (IOException e) {
