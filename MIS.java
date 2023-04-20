@@ -1,240 +1,441 @@
-import java.io.*;
-import java.util.*;
+import java.awt.Color;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
+import javax.swing.JFrame;
+
 /**
- * Simulates a synchronous distributed system and implements MIS algorithm using multi threading
+ * Simulates a synchronous distributed system and implements MIS algorithm using
+ * multi threading
  */
 public class MIS {
 
-    // Shared memory
-    static Map<String, Integer> randomIdsMap = new HashMap<>();
-    static Map<String, Boolean> isCandidateMap = new HashMap<>();
-    static Map<String, Boolean> isIndependentMap = new HashMap<>();
-    static CyclicBarrier gate = null;
-    static int rounds = 0;
-    static int n = 0;
+	// Shared memory
+	static Map<String, Integer> randomIdsMap = new HashMap<>();
+	static Map<String, Boolean> isCandidateMap = new HashMap<>();
+	static Map<String, Boolean> isIndependentMap = new HashMap<>();
+	static CyclicBarrier gate = null;
+	static int rounds = 0;
+	static int n = 0;
 
-    /**
-     * Simulates the work done by a process node. Here, every process has its own thread
-     */
-    private static class ProcessNode implements Runnable {
+	static ArrayList<Node> nodes;
 
-        private final List<Integer> neighbors;
-        int roundCount = 0;
+	static GraphDraw draw;
 
-        ProcessNode(int pid, List<Integer> neighbors) {
+	/**
+	 * Simulates the work done by a process node. Here, every process has its own
+	 * thread
+	 */
+	private static class ProcessNode implements Runnable {
 
-            int randomId = 1 + new Random().nextInt((int) Math.pow(n, 4)); // Assign a random id
-            randomIdsMap.put(Integer.toString(pid), randomId);
+		private final List<Integer> neighbors;
+		int roundCount = 0;
 
-            this.neighbors = neighbors; // Contains ids of neighboring process nodes
+		ProcessNode(int pid, List<Integer> neighbors) {
 
-            // Initially every process nodes are candidate nodes and none are present in the independent set
-            isCandidateMap.put(Integer.toString(pid), true);
-            isIndependentMap.put(Integer.toString(pid), false);
-        }
+			int randomId = 1 + new Random().nextInt((int) Math.pow(n, 4)); // Assign a random id
+			randomIdsMap.put(Integer.toString(pid), randomId);
 
-        /**
-         * MIS algorithm implementation
-         */
-        public void run() {
-            try {
-                gate.await();
-                String currentThread = Thread.currentThread().getName();
+			this.neighbors = neighbors; // Contains ids of neighboring process nodes
 
-                while(isCandidateMap.get(currentThread)) {
+			// Initially every process nodes are candidate nodes and none are present in the
+			// independent set
+			isCandidateMap.put(Integer.toString(pid), true);
+			isIndependentMap.put(Integer.toString(pid), false);
+		}
 
-                    int randomId = 1 + new Random().nextInt((int) Math.pow(n, 4)); // Assign a random id in range 1...n^4
-                    randomIdsMap.put(currentThread, randomId);
-                    System.out.println("Current process id: " + Thread.currentThread().getName() + "; Randomly assigned id: " + randomId);
+		/**
+		 * MIS algorithm implementation
+		 */
+		public void run() {
+			try {
+				gate.await();
+				String currentThread = Thread.currentThread().getName();
 
-                    // This is done to maintain a synchronous network
-                    Thread.sleep(2000); // Wait for other processes to assign a random id
+				while (isCandidateMap.get(currentThread)) {
 
-                    int currId = randomIdsMap.get(currentThread);
-                    boolean isMax = true;
-                    boolean isRoundWasted = false;
-                    for(int neighbor : neighbors) {
-                        String neighborThreadName = Integer.toString(neighbor);
-                        if (isCandidateMap.get(neighborThreadName)) {
-                            if(randomIdsMap.get(neighborThreadName) > currId) {
-                                isMax = false; // Some other node has id greater than the current node
-                                break;
-                            } else if(randomIdsMap.get(neighborThreadName) == currId) {
-                                isRoundWasted = true; // If two nodes have the same id, this round is wasted
-                                break;
-                            }
-                        }
-                    }
+					int randomId = 1 + new Random().nextInt((int) Math.pow(n, 4)); // Assign a random id in range
+																					// 1...n^4
+					randomIdsMap.put(currentThread, randomId);
+					System.out.println("Current process id: " + Thread.currentThread().getName()
+							+ "; Randomly assigned id: " + randomId);
 
-                    if(isRoundWasted) { // Invoked when two nodes have the same temp id
-                        roundCount++;
-                        continue;
-                    }
+					// This is done to maintain a synchronous network
+					Thread.sleep(2000); // Wait for other processes to assign a random id
 
-                    // This is done to maintain a synchronous network
-                    Thread.sleep(2000); // Wait for other processes to find leaders in their neighborhoods
+					int currId = randomIdsMap.get(currentThread);
+					boolean isMax = true;
+					boolean isRoundWasted = false;
+					for (int neighbor : neighbors) {
+						String neighborThreadName = Integer.toString(neighbor);
+						if (isCandidateMap.get(neighborThreadName)) {
+							if (randomIdsMap.get(neighborThreadName) > currId) {
+								isMax = false; // Some other node has id greater than the current node
+								break;
+							} else if (randomIdsMap.get(neighborThreadName) == currId) {
+								isRoundWasted = true; // If two nodes have the same id, this round is wasted
+								break;
+							}
+						}
+					}
 
-                    if(isMax) { // Current node has max id among all its neighbors
-                        isIndependentMap.put(currentThread, true); // Put the current node in MIS
-                        isCandidateMap.put(currentThread, false);
-                        for(int neighbor : neighbors) { // Neighbors won't be in MIS
-                            isCandidateMap.put(Integer.toString(neighbor), false);
-                        }
-                    }
+					if (isRoundWasted) { // Invoked when two nodes have the same temp id
+						roundCount++;
+						continue;
+					}
 
-                    roundCount++;
+					// This is done to maintain a synchronous network
+					Thread.sleep(2000); // Wait for other processes to find leaders in their neighborhoods
 
-                    // This is done to maintain a synchronous network
-                    Thread.sleep(2000); // Wait for other processes to update their candidacy for next round
-                }
-            } catch (InterruptedException | BrokenBarrierException e) {
-                e.printStackTrace();
-            }
-            rounds = Math.max(rounds, roundCount);
-        }
-    }
+					if (isMax) { // Current node has max id among all its neighbors
+						isIndependentMap.put(currentThread, true); // Put the current node in MIS
+						isCandidateMap.put(currentThread, false);
+						for (int neighbor : neighbors) { // Neighbors won't be in MIS
+							isCandidateMap.put(Integer.toString(neighbor), false);
+							nodes.get(neighbor).setColor(Color.RED);
+							// update here
+						}
+					}
 
-    /**
-     * Prints the MIS process ids
-     * @return Set containing MIS process ids
-     */
-    private static Set<Integer> printMIS() {
+					roundCount++;
 
-        Set<Integer> misSet = new HashSet<>();
-        for(Map.Entry<String, Boolean> node : isIndependentMap.entrySet()) {
-            if(node.getValue()) {
-                misSet.add(Integer.parseInt(node.getKey()));
-            }
-        }
+					// This is done to maintain a synchronous network
+					Thread.sleep(2000); // Wait for other processes to update their candidacy for next round
+				}
+			} catch (InterruptedException | BrokenBarrierException e) {
+				e.printStackTrace();
+			}
+			rounds = Math.max(rounds, roundCount);
+		}
+	}
 
-        return misSet;
-    }
+	/**
+	 * Prints the MIS process ids
+	 * 
+	 * @return Set containing MIS process ids
+	 */
+	private static Set<Integer> printMIS() {
 
-    /**
-     * Verifies if the MIS constructed is indeed correct
-     * @param ids Ids corresponding to each process
-     * @param misSet Set containing MIS process ids
-     * @param processNeighbors Contains a list of neighboring process ids for each process
-     */
-    private static boolean verifyMIS(int[] ids, Set<Integer> misSet, List<List<Integer>> processNeighbors) {
+		Set<Integer> misSet = new HashSet<>();
+		for (Map.Entry<String, Boolean> node : isIndependentMap.entrySet()) {
+			if (node.getValue()) {
+				misSet.add(Integer.parseInt(node.getKey()));
+			}
+		}
 
-        Set<Integer> checkMISSet = new HashSet<>();
-        for(int i=0; i<n; i++) {
-            for(int j=0; j<processNeighbors.get(i).size(); j++) {
+		return misSet;
+	}
 
-                // Check if neighbors added in MIS
-                if(misSet.contains(ids[i]) && misSet.contains(processNeighbors.get(i).get(j))) {
-                    return false;
-                }
+	/**
+	 * Computing closest MIS node
+	 */
 
-                // checkMISSet is used to make sure that all nodes have been considered for MIS
-                if(misSet.contains(ids[i])) {
-                    checkMISSet.add(ids[i]);
-                    checkMISSet.add(processNeighbors.get(i).get(j));
-                }
-            }
-        }
-        return checkMISSet.size() == n;
-    }
+	private static void helper(Robot[] robots, Set<Integer> misNodes, List<List<Integer>> processNeighbors,
+			Set<Robot> usedRobots) {
 
-    public static void main(String[] args) {
+		for (Integer misNode : misNodes) {
+			Robot r = closestRobotToMISNode(robots, processNeighbors, misNode, usedRobots);
+			r.setTargetNode(misNode);
+			usedRobots.add(r);
+		}
+	}
 
-        // Pass on input & output file through command line argument
-        if(args.length != 2) {
-            System.err.println("Error: Input and/or output file not provided in the argument!");
-            System.exit(1);
-        }
+	public static Robot closestRobotToMISNode(Robot[] robots, List<List<Integer>> processNeighbors, int misNode,
+			Set<Robot> usedRobots) {
+		int n = processNeighbors.size(); // number of nodes in the graph
+		int[] dist = new int[n]; // distance from startNode to each node
+		Arrays.fill(dist, Integer.MAX_VALUE);
+		dist[misNode] = 0;
+		PriorityQueue<Integer> pq = new PriorityQueue<>((a, b) -> dist[a] - dist[b]); // min-heap sorted by distance
+		pq.offer(misNode);
+		while (!pq.isEmpty()) {
+			int currNode = pq.poll();
+			for (int neighbor : processNeighbors.get(currNode)) { // iterate over neighbors of currNode
+				int newDist = dist[currNode] + 1; // distance to neighbor is always 1
+				if (newDist < dist[neighbor]) { // found a shorter path to neighbor
+					dist[neighbor] = newDist;
+					pq.offer(neighbor);
+				}
+			}
+		}
+		Robot closestRobot = null;
+		int minDist = Integer.MAX_VALUE;
+		for (Robot robot : robots) {
+			if (dist[robot.startNode] < minDist && !usedRobots.contains(robot)) {
+				closestRobot = robot;
+				minDist = dist[robot.startNode];
+			}
+		}
+		return closestRobot;
+	}
 
-        Scanner sc = null;
-        try {
-            sc = new Scanner(new File(args[0]));
-        } catch (FileNotFoundException e) {
-            System.err.println("Error: Input file not found!");
-            System.exit(1);
-        }
+	// perform BFS and return the shortest path between start and end
+	public static List<Integer> shortestPath(List<List<Integer>> graph, int start, int end) {
+		Queue<Integer> queue = new LinkedList<>();
+		boolean[] visited = new boolean[graph.size()];
+		int[] parent = new int[graph.size()];
+		Arrays.fill(parent, -1);
 
-        n = sc.nextInt(); // Total processes
+		queue.offer(start);
+		visited[start] = true;
 
-        // Every process is identified through the provided id
-        // This id is not used for comparison though, it's just used for identification
-        int[] ids = new int[n];
-        for(int i=0; i<n; i++) {
-            ids[i] = sc.nextInt();
-        }
+		while (!queue.isEmpty()) {
+			int current = queue.poll();
+			if (current == end) {
+				break;
+			}
+			for (int neighbor : graph.get(current)) {
+				if (!visited[neighbor]) {
+					queue.offer(neighbor);
+					visited[neighbor] = true;
+					parent[neighbor] = current;
+				}
+			}
+		}
 
-        MIS.ProcessNode[] processNodes = new MIS.ProcessNode[n];
+		List<Integer> path = new ArrayList<>();
+		int current = end;
+		while (current != -1) {
+			path.add(0, current);
+			current = parent[current];
+		}
+		return path;
+	}
 
-        List<List<Integer>> processNeighbors = new ArrayList<>(); // Used for checking if MIS is indeed correct
-        for(int i=0; i<n; i++) {
-            List<Integer> currentProcessNeighbors = new ArrayList<>();
-            for(int j=0; j<n; j++) {
-                if(sc.nextInt() == 1) {
-                    currentProcessNeighbors.add(ids[j]); // Add neighbors of current process
-                }
-            }
+	/**
+	 * Verifies if the MIS constructed is indeed correct
+	 * 
+	 * @param ids              Ids corresponding to each process
+	 * @param misSet           Set containing MIS process ids
+	 * @param processNeighbors Contains a list of neighboring process ids for each
+	 *                         process
+	 */
+	private static boolean verifyMIS(int[] ids, Set<Integer> misSet, List<List<Integer>> processNeighbors) {
 
-            // Create a new instance of a process node
-            processNodes[i] = new MIS.ProcessNode(ids[i], currentProcessNeighbors);
-            processNeighbors.add(currentProcessNeighbors);
-        }
+		Set<Integer> checkMISSet = new HashSet<>();
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < processNeighbors.get(i).size(); j++) {
 
-        // Start multi-threading!
-        try {
-            Thread[] threads = new Thread[processNodes.length];
+				// Check if neighbors added in MIS
+				if (misSet.contains(ids[i]) && misSet.contains(processNeighbors.get(i).get(j))) {
+					return false;
+				}
 
-            gate = new CyclicBarrier(processNodes.length + 1); // Acts as the main thread
+				// checkMISSet is used to make sure that all nodes have been considered for MIS
+				if (misSet.contains(ids[i])) {
+					checkMISSet.add(ids[i]);
+					checkMISSet.add(processNeighbors.get(i).get(j));
+				}
+			}
+		}
+		return checkMISSet.size() == n;
+	}
 
-            // Assign a thread to each process node
-            for (int i = 0; i < processNodes.length; i++) {
-                threads[i] = new Thread(processNodes[i]);
-                threads[i].setName(Integer.toString(ids[i])); // Process id is the name of the thread
-                threads[i].start();
-            }
+	public static void main(String[] args) throws InterruptedException {
 
-            gate.await();
+		// Pass on input & output file through command line argument
+		if (args.length != 2) {
+			System.err.println("Error: Input and/or output file not provided in the argument!");
+			System.exit(1);
+		}
 
-            // Main thread checks if the other threads have been terminated
-            for (int i = 0; i < processNodes.length; i++) {
-                while (threads[i].isAlive()) {
-                    System.out.println("Computing MIS...");
-                    threads[i].join(1000);
-                }
-            }
-            System.out.println();
-        } catch (InterruptedException | BrokenBarrierException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Finished computing MIS...Writing results to output file...");
+		Scanner sc = null;
+		try {
+			sc = new Scanner(new File(args[0]));
+		} catch (FileNotFoundException e) {
+			System.err.println("Error: Input file not found!");
+			System.exit(1);
+		}
 
-        // Write final output to a file
-        try {
-            BufferedWriter output = new BufferedWriter(new FileWriter(args[1]));
+		JFrame frame = new JFrame();
+		// create an object
+		GraphDraw draw = new GraphDraw();
 
-            output.append("Number of rounds (phases): ").append(String.valueOf(rounds));
-            output.newLine();
+		System.out.println();
 
-            output.append("MIS has the processes with IDs: ");
-            Set<Integer> misSet = printMIS(); // Prints processes in the MIS
-            for (Integer misId : misSet) {
-                output.append(String.valueOf(misId)).append(" ");
-            }
-            output.newLine();
+		// displaying graph
+		draw.setSize(600, 600);
+		draw.setVisible(true);
+		frame.add(draw);
+		frame.setSize(600, 600);
+		frame.setVisible(true);
 
-            output.append("Checking if  the MIS constructed is correct...");
-            output.newLine();
-            if(verifyMIS(ids, misSet, processNeighbors)) { // Verify correctness of the MIS
-                output.append("The MIS constructed is correct!");
-            } else {
-                output.append("The MIS constructed is not correct!");
-            }
+		n = sc.nextInt(); // Total processes
 
-            output.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+		nodes = new ArrayList<>();
 
-    }
+		// Every process is identified through the provided id
+		// This id is not used for comparison though, it's just used for identification
+		int[] ids = new int[n];
+		for (int i = 0; i < n; i++) {
+
+			ids[i] = sc.nextInt();
+
+			double rad = i * (2 * Math.PI / n);
+			int x = 250 + (int) (200 * Math.cos(rad));
+			int y = 250 + (int) (200 * Math.sin(rad));
+
+			Node node = new Node();
+			nodes.add(node);
+			node.setDisplayName("" + i);
+			node.setColor(Color.BLUE);
+			node.setPosition(new Node.Position(x, y));
+			draw.addNode(node);
+		}
+
+		MIS.ProcessNode[] processNodes = new MIS.ProcessNode[n];
+
+		List<List<Integer>> processNeighbors = new ArrayList<>(); // Used for checking if MIS is indeed correct
+		for (int i = 0; i < n; i++) {
+			List<Integer> currentProcessNeighbors = new ArrayList<>();
+			for (int j = 0; j < n; j++) {
+				if (sc.nextInt() == 1) {
+					currentProcessNeighbors.add(ids[j]); // Add neighbors of current process
+					Edge edge = new Edge(nodes.get(i), nodes.get(j));
+					edge.setFocussed(true);
+					edge.setColor(Color.CYAN);
+					draw.addEdge(edge);
+				}
+			}
+
+			// Create a new instance of a process node
+			processNodes[i] = new MIS.ProcessNode(ids[i], currentProcessNeighbors);
+			processNeighbors.add(currentProcessNeighbors);
+		}
+
+		// Start multi-threading!
+		try {
+			Thread[] threads = new Thread[processNodes.length];
+
+			gate = new CyclicBarrier(processNodes.length + 1); // Acts as the main thread
+
+			// Assign a thread to each process node
+			for (int i = 0; i < processNodes.length; i++) {
+				threads[i] = new Thread(processNodes[i]);
+				threads[i].setName(Integer.toString(ids[i])); // Process id is the name of the thread
+				threads[i].start();
+			}
+
+			gate.await();
+
+			// Main thread checks if the other threads have been terminated
+			for (int i = 0; i < processNodes.length; i++) {
+				while (threads[i].isAlive()) {
+					System.out.println("Computing MIS...");
+					threads[i].join(1000);
+				}
+			}
+			System.out.println();
+		} catch (InterruptedException | BrokenBarrierException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Finished computing MIS...Writing results to output file...");
+
+		draw.repaint();
+
+		Set<Integer> misNodes = printMIS();
+
+		Robot[] robots = new Robot[misNodes.size()];
+
+		List<Integer> processIds = new ArrayList<Integer>();
+		for (int i = 0; i < n; i++)
+			processIds.add(i);
+
+		Collections.shuffle(processIds);
+
+		for (int i = 0; i < misNodes.size(); i++) {
+			robots[i] = new Robot(i, processIds.get(i));
+		}
+
+		Set<Robot> usedRobots = new HashSet<Robot>();
+
+		helper(robots, misNodes, processNeighbors, usedRobots);
+
+		for (int i = 0; i < robots.length; i++) {
+			robots[i].setPath(shortestPath(processNeighbors, robots[i].startNode, robots[i].targetNode));
+			System.out.println(robots[i]);
+			System.out.println();
+		}
+
+		int rounds = 0;
+		boolean blocked[] = new boolean[n];
+
+		int count = 0;
+
+		while (count != misNodes.size()) {
+			for (int i = 0; i < robots.length; i++) {
+				Thread.sleep(2000);
+				if (robots[i].startNode == robots[i].targetNode){
+					nodes.get(robots[i].targetNode).setColor(Color.YELLOW);
+					draw.repaint();
+				   continue;
+			}
+				if (robots[i].path.indexOf(robots[i].currentNode) + 1 >= robots[i].path.size())
+					continue;
+				if (blocked[robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1)]
+						&& !misNodes.contains(robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1)))
+					continue;
+				if (robots[i].currentNode != robots[i].targetNode) {
+					blocked[robots[i].currentNode] = false;
+					if (!misNodes.contains(robots[i].currentNode) && !blocked[robots[i].currentNode])
+						nodes.get(robots[i].currentNode).setColor(Color.RED);
+					else
+						nodes.get(robots[i].currentNode).setColor(Color.BLUE);
+					draw.repaint();
+					robots[i].currentNode = robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1);
+					blocked[robots[i].currentNode] = true;
+					if (misNodes.contains(robots[i].currentNode))
+						count++;
+					nodes.get(robots[i].currentNode).setColor(Color.YELLOW);
+					draw.repaint();
+				}
+				System.out.println(robots[i]);
+			}
+		}
+
+		// Write final output to a file
+		try {
+			BufferedWriter output = new BufferedWriter(new FileWriter(args[1]));
+
+			output.append("Number of rounds (phases): ").append(String.valueOf(rounds));
+			output.newLine();
+
+			output.append("MIS has the processes with IDs: ");
+			Set<Integer> misSet = printMIS(); // Prints processes in the MIS
+			for (Integer misId : misSet) {
+				output.append(String.valueOf(misId)).append(" ");
+			}
+			output.newLine();
+			output.append("Checking if  the MIS constructed is correct...");
+			output.newLine();
+			if (verifyMIS(ids, misSet, processNeighbors)) { // Verify correctness of the MIS
+				output.append("The MIS constructed is correct!");
+			} else {
+				output.append("The MIS constructed is not correct!");
+			}
+			output.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
 }
