@@ -64,7 +64,7 @@ class Robot {
 
 	@Override
 	public String toString() {
-		return "Robot [id=" + id + ", startNode=" + startNode + ", path=" + path + ", currentNode=" + currentNode
+		return "Robot [id=" + id  + ", currentNode=" + currentNode
 				+ ", targetNode=" + targetNode + "]";
 	}
 

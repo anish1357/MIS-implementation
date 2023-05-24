@@ -374,8 +374,6 @@ public class MIS {
 
 		for (int i = 0; i < robots.length; i++) {
 			robots[i].setPath(shortestPath(processNeighbors, robots[i].startNode, robots[i].targetNode));
-			System.out.println(robots[i]);
-			System.out.println();
 		}
 
 		int hops = 0;
@@ -384,18 +382,20 @@ public class MIS {
         HashMap <Integer,Boolean> misNodeFilled = new HashMap<>();
 		while (misNodeFilled.size() != misNodes.size()) {
 			    hops++;
-				Thread.sleep(10000);
+				Thread.sleep(1000);
 			for (int i = 0; i < robots.length; i++) {
 
 				if(robotReachedTarget[robots[i].getId()] == true){
 					continue;
 				}
-				if(robots[i].currentNode == robots[i].targetNode){
+				else if(robots[i].currentNode == robots[i].targetNode){
 					misNodeFilled.put(robots[i].targetNode,true);
 					nodes.get(robots[i].targetNode).setColor(Color.GREEN);
 					blocked[robots[i].targetNode]= true;
 					robotReachedTarget[robots[i].getId()] = true;
 					draw.repaint();
+					System.out.println(robots[i]);
+					System.out.println();
 				}
 				else if(robots[i].currentNode!= robots[i].targetNode){
 					 int nextNode = robots[i].path.get(robots[i].path.indexOf(robots[i].currentNode) + 1);
@@ -409,10 +409,13 @@ public class MIS {
 					if(!misNodeFilled.containsKey(robots[i].currentNode))
 						blocked[robots[i].currentNode] = false;
 				     blocked[nextNode] = true;
+					System.out.println(robots[i]);
+					System.out.println();
 					 robots[i].currentNode = nextNode;
 					 if(!misNodeFilled.containsKey(nextNode))
 					nodes.get(nextNode).setColor(Color.YELLOW);
 					draw.repaint();
+
 				}
 
 
