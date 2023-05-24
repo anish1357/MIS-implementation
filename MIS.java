@@ -293,8 +293,8 @@ public class MIS {
 			ids[i] = sc.nextInt();
 
 			double rad = i * (2 * Math.PI / n);
-			int x = 900 + (int) (400 * Math.cos(rad));
-			int y = 450 + (int) (400 * Math.sin(rad));
+			int x = 200 + (int) (200 * Math.cos(rad));
+			int y = 200 + (int) (200 * Math.sin(rad));
 
 			Node node = new Node();
 			nodes.add(node);
@@ -384,7 +384,7 @@ public class MIS {
         HashMap <Integer,Boolean> misNodeFilled = new HashMap<>();
 		while (misNodeFilled.size() != misNodes.size()) {
 			    hops++;
-				Thread.sleep(2000);
+				Thread.sleep(10000);
 			for (int i = 0; i < robots.length; i++) {
 
 				if(robotReachedTarget[robots[i].getId()] == true){

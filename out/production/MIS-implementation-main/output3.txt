@@ -1,0 +1,5 @@
+Number of rounds (phases): 1
+MIS has the processes with IDs: 2 
+Checking if  the MIS constructed is correct...
+The MIS constructed is correct!
+The maximum no of hops is : 1
