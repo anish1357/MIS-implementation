@@ -1,5 +1,5 @@
-Number of rounds (phases): 2
-MIS has the processes with IDs: 1 2 6 7 8 
+Number of rounds (phases): 3
+MIS has the processes with IDs: 0 1 2 6 11 12 
 Checking if  the MIS constructed is correct...
 The MIS constructed is correct!
-The maximum no of hops is : 4
+The maximum no of hops is : 9

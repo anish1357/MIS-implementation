@@ -146,12 +146,12 @@ public class MIS {
 
 
 	private static void helper(Robot[] robots, Set<Integer> misNodes, List<List<Integer>> processNeighbors,
-			Set<Robot> usedRobots) {
+			Set<Integer> usedMISnodes) {
 
-		for (Integer misNode : misNodes) {
-			Robot r = closestRobotToMISNode(robots, processNeighbors, misNode, usedRobots);
-			r.setTargetNode(misNode);
-			usedRobots.add(r);
+		for (Robot robot : robots) {
+			Integer r = closestRobotToMISNode(misNodes, processNeighbors, robot.startNode, usedMISnodes);
+			robot.setTargetNode(r);
+			usedMISnodes.add(r);
 		}
 	}
 
@@ -159,14 +159,14 @@ public class MIS {
 	/**
 	 * Computes the closest robot to each MIS node.
 	 */
-	public static Robot closestRobotToMISNode(Robot[] robots, List<List<Integer>> processNeighbors, int misNode,
-			Set<Robot> usedRobots) {
+	public static Integer closestRobotToMISNode(Set<Integer> MISnodes, List<List<Integer>> processNeighbors, int src,
+			Set<Integer> usedMISnodes) {
 		int n = processNeighbors.size(); // number of nodes in the graph
 		int[] dist = new int[n]; // distance from startNode to each node
 		Arrays.fill(dist, Integer.MAX_VALUE);
-		dist[misNode] = 0;
+		dist[src] = 0;
 		PriorityQueue<Integer> pq = new PriorityQueue<>((a, b) -> dist[a] - dist[b]); // min-heap sorted by distance
-		pq.offer(misNode);
+		pq.offer(src);
 		while (!pq.isEmpty()) {
 			int currNode = pq.poll();
 			for (int neighbor : processNeighbors.get(currNode)) { // iterate over neighbors of currNode
@@ -177,15 +177,15 @@ public class MIS {
 				}
 			}
 		}
-		Robot closestRobot = null;
+		Integer closestNode = null;
 		int minDist = Integer.MAX_VALUE;
-		for (Robot robot : robots) {
-			if (dist[robot.startNode] < minDist && !usedRobots.contains(robot)) {
-				closestRobot = robot;
-				minDist = dist[robot.startNode];
+		for (Integer node : MISnodes) {
+			if (dist[node] < minDist && !usedMISnodes.contains(node)) {
+				closestNode = node;
+				minDist = dist[node];
 			}
 		}
-		return closestRobot;
+		return closestNode;
 	}
 
 	/**
@@ -368,9 +368,9 @@ public class MIS {
 			robots[i] = new Robot(i, processIds.get(i));
 		}
 
-		Set<Robot> usedRobots = new HashSet<Robot>();
+		Set<Integer> usedMISnodes = new HashSet<Integer>();
 
-		helper(robots, misNodes, processNeighbors, usedRobots);
+		helper(robots, misNodes, processNeighbors, usedMISnodes);
 
 		for (int i = 0; i < robots.length; i++) {
 			robots[i].setPath(shortestPath(processNeighbors, robots[i].startNode, robots[i].targetNode));
@@ -382,7 +382,7 @@ public class MIS {
         HashMap <Integer,Boolean> misNodeFilled = new HashMap<>();
 		while (misNodeFilled.size() != misNodes.size()) {
 			    hops++;
-				Thread.sleep(1000);
+				Thread.sleep(20000);
 			for (int i = 0; i < robots.length; i++) {
 
 				if(robotReachedTarget[robots[i].getId()] == true){
